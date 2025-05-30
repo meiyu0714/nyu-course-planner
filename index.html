@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYU CS Course Planner</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #57068c;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 30px;
+        }
+
+        .course-library {
+            flex: 0 0 350px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .course-library h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .course-category {
+            margin-bottom: 20px;
+        }
+
+        .course-category h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .course-item {
+            background: #f8f8f8;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .course-item:hover {
+            border-color: #57068c;
+            box-shadow: 0 2px 4px rgba(87,6,140,0.2);
+        }
+
+        .course-item.dragging {
+            opacity: 0.5;
+        }
+
+        .course-code {
+            font-weight: bold;
+            color: #57068c;
+            font-size: 14px;
+        }
+
+        .course-name {
+            font-size: 13px;
+            color: #333;
+            margin-top: 4px;
+        }
+
+        .course-credits {
+            display: inline-block;
+            background: #57068c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 6px;
+        }
+
+        .course-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 6px;
+            margin-left: 5px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .tag-capstone {
+            background: #ff6b6b !important;
+            color: white !important;
+        }
+
+        .tag-algorithm {
+            background: #4ecdc4 !important;
+            color: white !important;
+        }
+
+        .semesters-container {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .semester {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .semester h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .credit-count {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .drop-zone {
+            min-height: 200px;
+            background: #fafafa;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.2s;
+        }
+
+        .drop-zone .course-item {
+            background: #f8f8f8;
+            border: 2px solid #e0e0e0;
+            opacity: 1 !important;
+        }
+
+        .drop-zone .course-item:hover {
+            border-color: #57068c;
+            box-shadow: 0 2px 4px rgba(87,6,140,0.2);
+        }
+        
+        .drop-zone .course-item * {
+            opacity: 1 !important;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #57068c;
+            background: #f5f0ff;
+        }
+
+        .drop-zone.full {
+            background: #fee;
+            border-color: #fcc;
+        }
+
+        .requirements {
+            margin-top: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .requirements h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .requirement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .requirement-item:last-child {
+            border-bottom: none;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #57068c;
+            transition: width 0.3s ease;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .status.complete {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .empty-state {
+            color: #999;
+            text-align: center;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NYU Computer Science Course Planner</h1>
+        
+        <div class="main-layout">
+            <!-- Course Library -->
+            <div class="course-library">
+                <h2>Available Courses</h2>
+                
+                <div class="course-category">
+                    <h3>Core Requirements</h3>
+                    <div id="core-courses"></div>
+                </div>
+                
+                <div class="course-category">
+                    <h3>Technical Electives</h3>
+                    <div id="elective-courses"></div>
+                </div>
+            </div>
+            
+            <!-- Semester Containers -->
+            <div class="semesters-container">
+                <div class="semester">
+                    <h3>1st Semester <span class="credit-count">0/9 credits</span></h3>
+                    <div class="drop-zone" data-semester="1">
+                        <div class="empty-state">Drag courses here</div>
+                    </div>
+                </div>
+                
+                <div class="semester">
+                    <h3>2nd Semester <span class="credit-count">0/9 credits</span></h3>
+                    <div class="drop-zone" data-semester="2">
+                        <div class="empty-state">Drag courses here</div>
+                    </div>
+                </div>
+                
+                <div class="semester">
+                    <h3>3rd Semester <span class="credit-count">0/9 credits</span></h3>
+                    <div class="drop-zone" data-semester="3">
+                        <div class="empty-state">Drag courses here</div>
+                    </div>
+                </div>
+                
+                <div class="semester">
+                    <h3>4th Semester <span class="credit-count">0/3 credits</span></h3>
+                    <div class="drop-zone" data-semester="4">
+                        <div class="empty-state">Drag courses here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Graduation Requirements Tracker -->
+        <div class="requirements">
+            <h2>Graduation Requirements Progress</h2>
+            <div class="requirement-item">
+                <span>Total Credits (30 required)</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="total-progress" style="width: 0%"></div>
+                </div>
+                <span class="status" id="total-status">0/30</span>
+            </div>
+            <div class="requirement-item">
+                <span>Algorithm Requirement (CS-GY 6033 or CS-GY 6043)</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="algorithm-progress" style="width: 0%"></div>
+                </div>
+                <span class="status" id="algorithm-status">Not completed</span>
+            </div>
+            <div class="requirement-item">
+                <span>Core Elective Courses (12 credits / 4 courses)</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="core-progress" style="width: 0%"></div>
+                </div>
+                <span class="status" id="core-status">0/4</span>
+            </div>
+            <div class="requirement-item">
+                <span>Capstone Course (3 credits)</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="capstone-progress" style="width: 0%"></div>
+                </div>
+                <span class="status" id="capstone-status">Not completed</span>
+            </div>
+            <div class="requirement-item">
+                <span>General Elective Courses (12 credits)</span>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="elective-progress" style="width: 0%"></div>
+                </div>
+                <span class="status" id="elective-status">0/12 credits</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Course data structure with accurate NYU course information
+        const courseData = {
+            // Core courses
+            'CS-GY 6063': { name: 'Software Engineering', isCore: true, isCapstone: true, isGeneral: true },
+            'CS-GY 6083': { name: 'Principles of Database Systems', isCore: true, isGeneral: true },
+            'CS-GY 6133': { name: 'Computer Architecture I', isCore: true, isGeneral: true },
+            'CS-GY 6233': { name: 'Introduction to Operating Systems', isCore: true, isGeneral: true },
+            'CS-GY 6313': { name: 'Information Visualization', isCore: true, isGeneral: true },
+            'CS-GY 6373': { name: 'Programming Languages', isCore: true, isGeneral: true },
+            'CS-GY 6513': { name: 'Big Data', isCore: true, isCapstone: true },
+            'CS-GY 6533': { name: 'Interactive Computer Graphics', isCore: true, isCapstone: true, isGeneral: true },
+            'CS-GY 6613': { name: 'Artificial Intelligence I', isCore: true, isCapstone: true, isGeneral: true },
+            'CS-GY 6643': { name: 'Computer Vision', isCore: true, isCapstone: true, isGeneral: true },
+            'CS-GY 6763': { name: 'Algorithmic Machine Learning and Data Science', isCore: true },
+            'CS-GY 6813': { name: 'Information, Security and Privacy', isCore: true, isGeneral: true },
+            'CS-GY 6843': { name: 'Computer Networking', isCore: true, isGeneral: true },
+            'CS-GY 6923': { name: 'Machine Learning', isCore: true, isGeneral: true },
+            'CS-GY 9223': { name: 'Selected Topics in Computer Science', isCore: true, isGeneral: true },
+            
+            // Algorithm courses
+            'CS-GY 6033': { name: 'Design and Analysis of Algorithms I', isGeneral: true, isAlgorithm: true },
+            'CS-GY 6043': { name: 'Design and Analysis of Algorithms II', isGeneral: true, isAlgorithm: true },
+            
+            // Additional courses (general electives only)
+            'CS-GY 6003': { name: 'Foundations of Computer Science', isGeneral: true },
+            'CS-GY 6053': { name: 'Foundation of Data Science', isCapstone: true },
+            'CS-GY 6073': { name: 'Software Engineering II', isCapstone: true, isGeneral: true },
+            'CS-GY 6093': { name: 'Advanced Database Systems', isGeneral: true },
+            'CS-GY 6143': { name: 'Computer Architecture II', isGeneral: true },
+            'CS-GY 6243': { name: 'Operating Systems II', isCapstone: true, isGeneral: true },
+            'CS-GY 6253': { name: 'Distributed Operating Systems', isCapstone: true, isGeneral: true },
+            'CS-GY 6273': { name: 'Performance Evaluation of Computer Systems', isGeneral: true },
+            'CS-GY 6323': { name: 'Large-Scale Visual Analytics', isGeneral: true },
+            'CS-GY 6413': { name: 'Compiler Design and Construction', isCapstone: true, isGeneral: true },
+            'CS-GY 6543': { name: 'Human Computer Interaction', isGeneral: true },
+            'CS-GY 6553': { name: 'Game Design', isGeneral: true },
+            'CS-GY 6573': { name: 'Penetration Testing and Vulnerability Analysis', isCapstone: true },
+            'CS-GY 6673': { name: 'Neural Network Computing', isCapstone: true, isGeneral: true },
+            'CS-GY 6703': { name: 'Computational Geometry', isGeneral: true },
+            'CS-GY 6753': { name: 'Theory of Computation', isGeneral: true },
+            'CS-GY 6823': { name: 'Network Security', isCapstone: true, isGeneral: true },
+            'CS-GY 6903': { name: 'Applied Cryptography', isGeneral: true },
+            'CS-GY 6913': { name: 'Web Search Engines', isGeneral: true },
+            'CS-GY 6943': { name: 'Artificial Intelligence for Games', isCapstone: true },
+            'CS-GY 6963': { name: 'Digital Forensics', isGeneral: true },
+            'CS-GY 9033': { name: 'Web Services and SOA', isGeneral: true },
+            'CS-GY 9053': { name: 'Introduction to Java', isGeneral: true },
+            'CS-GY 9093': { name: 'Biometrics', isGeneral: true },
+            'CS-GY 9103': { name: 'Object Oriented Design with Java', isGeneral: true },
+            'CS-GY 9133': { name: 'Emerging Technology for IP', isGeneral: true },
+            'CS-GY 9163': { name: 'Application Security', isCapstone: true, isGeneral: true }
+        };
+
+        // Semester credit limits
+        const semesterLimits = {
+            1: 9, // 3 courses
+            2: 9, // 3 courses
+            3: 9, // 3 courses
+            4: 3  // 1 course
+        };
+
+        // Create course element
+        function createCourseElement(courseId, courseInfo) {
+            const div = document.createElement('div');
+            div.className = 'course-item';
+            div.draggable = true;
+            div.dataset.courseId = courseId;
+            div.dataset.credits = 3; // All courses are 3 credits
+            
+            // Store course properties
+            if (courseInfo.isCore) div.dataset.isCore = 'true';
+            if (courseInfo.isCapstone) div.dataset.isCapstone = 'true';
+            if (courseInfo.isGeneral) div.dataset.isGeneral = 'true';
+            if (courseInfo.isAlgorithm) div.dataset.isAlgorithm = 'true';
+            
+            let tagsHtml = '';
+            if (courseInfo.isCapstone) {
+                tagsHtml += '<span class="course-tag tag-capstone">Capstone</span>';
+            }
+            if (courseInfo.isAlgorithm) {
+                tagsHtml += '<span class="course-tag tag-algorithm">Algorithm</span>';
+            }
+            
+            div.innerHTML = `
+                <div class="course-code">${courseId}</div>
+                <div class="course-name">${courseInfo.name}</div>
+                <span class="course-credits">3 credits</span>
+                ${tagsHtml}
+            `;
+            
+            // Add drag event listeners
+            div.addEventListener('dragstart', handleDragStart);
+            div.addEventListener('dragend', handleDragEnd);
+            
+            return div;
+        }
+
+        // Initialize course library
+        function initializeCourses() {
+            const coreContainer = document.getElementById('core-courses');
+            const electiveContainer = document.getElementById('elective-courses');
+            
+            // Clear containers
+            coreContainer.innerHTML = '';
+            electiveContainer.innerHTML = '';
+            
+            // Sort courses and add to appropriate category
+            Object.entries(courseData).forEach(([courseId, courseInfo]) => {
+                const courseElement = createCourseElement(courseId, courseInfo);
+                
+                // Add to Core Requirements section if it's a core course
+                if (courseInfo.isCore) {
+                    coreContainer.appendChild(courseElement);
+                } else {
+                    // Otherwise add to Technical Electives
+                    electiveContainer.appendChild(courseElement);
+                }
+            });
+        }
+
+        // Drag and drop handlers
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        // Setup drop zones
+        function setupDropZones() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            if (!draggedElement) return;
+            
+            const semester = parseInt(e.currentTarget.dataset.semester);
+            const currentCredits = calculateSemesterCredits(semester);
+            const courseCredits = parseInt(draggedElement.dataset.credits);
+            
+            // Check credit limit
+            if (currentCredits + courseCredits > semesterLimits[semester]) {
+                alert(`Semester ${semester} is full! Maximum ${semesterLimits[semester]} credits allowed.`);
+                return;
+            }
+            
+            // Check if course is already selected
+            if (isCourseAlreadySelected(draggedElement.dataset.courseId)) {
+                alert('This course has already been selected in another semester!');
+                return;
+            }
+            
+            // Add course to semester
+            const courseClone = draggedElement.cloneNode(true);
+            courseClone.addEventListener('dragstart', handleDragStart);
+            courseClone.addEventListener('dragend', handleDragEnd);
+            
+            // Remove empty state message
+            const emptyState = e.currentTarget.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            
+            e.currentTarget.appendChild(courseClone);
+            
+            // Update displays
+            updateSemesterCredits(semester);
+            updateRequirements();
+        }
+
+        // Calculate semester credits
+        function calculateSemesterCredits(semester) {
+            const zone = document.querySelector(`.drop-zone[data-semester="${semester}"]`);
+            const courses = zone.querySelectorAll('.course-item');
+            let total = 0;
+            courses.forEach(course => {
+                total += parseInt(course.dataset.credits);
+            });
+            return total;
+        }
+
+        // Check if course is already selected
+        function isCourseAlreadySelected(courseId) {
+            const allSelectedCourses = document.querySelectorAll('.drop-zone .course-item');
+            for (let course of allSelectedCourses) {
+                if (course.dataset.courseId === courseId) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Update semester credit display
+        function updateSemesterCredits(semester) {
+            const credits = calculateSemesterCredits(semester);
+            const creditDisplay = document.querySelector(`.semester:nth-child(${semester}) .credit-count`);
+            creditDisplay.textContent = `${credits}/${semesterLimits[semester]} credits`;
+        }
+
+        // Update graduation requirements
+        function updateRequirements() {
+            let totalCredits = 0;
+            let coreCredits = 0;
+            let generalElectiveCredits = 0;
+            let algorithmCompleted = false;
+            let capstoneCompleted = false;
+            
+            const allSelectedCourses = document.querySelectorAll('.drop-zone .course-item');
+            
+            allSelectedCourses.forEach(course => {
+                const credits = parseInt(course.dataset.credits);
+                totalCredits += credits;
+                
+                // Count core elective credits
+                if (course.dataset.isCore === 'true') {
+                    coreCredits += credits;
+                }
+                
+                // Count general elective credits (all courses count)
+                if (course.dataset.isGeneral === 'true') {
+                    generalElectiveCredits += credits;
+                }
+                
+                // Check for algorithm requirement
+                if (course.dataset.isAlgorithm === 'true') {
+                    algorithmCompleted = true;
+                }
+                
+                // Check for capstone
+                if (course.dataset.isCapstone === 'true') {
+                    capstoneCompleted = true;
+                }
+            });
+            
+            // Update total credits
+            const totalProgress = (totalCredits / 30) * 100;
+            document.getElementById('total-progress').style.width = totalProgress + '%';
+            document.getElementById('total-status').textContent = `${totalCredits}/30`;
+            if (totalCredits >= 30) {
+                document.getElementById('total-status').classList.add('complete');
+            } else {
+                document.getElementById('total-status').classList.remove('complete');
+            }
+            
+            // Update algorithm requirement
+            const algorithmProgress = algorithmCompleted ? 100 : 0;
+            document.getElementById('algorithm-progress').style.width = algorithmProgress + '%';
+            document.getElementById('algorithm-status').textContent = algorithmCompleted ? 'Completed' : 'Not completed';
+            if (algorithmCompleted) {
+                document.getElementById('algorithm-status').classList.add('complete');
+            } else {
+                document.getElementById('algorithm-status').classList.remove('complete');
+            }
+            
+            // Update core electives (12 credits / 4 courses)
+            const coreProgress = (coreCredits / 12) * 100;
+            document.getElementById('core-progress').style.width = Math.min(coreProgress, 100) + '%';
+            document.getElementById('core-status').textContent = `${coreCredits}/12 credits`;
+            if (coreCredits >= 12) {
+                document.getElementById('core-status').classList.add('complete');
+            } else {
+                document.getElementById('core-status').classList.remove('complete');
+            }
+            
+            // Update capstone requirement
+            const capstoneProgress = capstoneCompleted ? 100 : 0;
+            document.getElementById('capstone-progress').style.width = capstoneProgress + '%';
+            document.getElementById('capstone-status').textContent = capstoneCompleted ? 'Completed' : 'Not completed';
+            if (capstoneCompleted) {
+                document.getElementById('capstone-status').classList.add('complete');
+            } else {
+                document.getElementById('capstone-status').classList.remove('complete');
+            }
+            
+            // Update general electives
+            const electiveProgress = (generalElectiveCredits / 12) * 100;
+            document.getElementById('elective-progress').style.width = Math.min(electiveProgress, 100) + '%';
+            document.getElementById('elective-status').textContent = `${generalElectiveCredits}/12 credits`;
+            if (generalElectiveCredits >= 12) {
+                document.getElementById('elective-status').classList.add('complete');
+            } else {
+                document.getElementById('elective-status').classList.remove('complete');
+            }
+        }
+
+        // Initialize application
+        initializeCourses();
+        setupDropZones();
+    </script>
+</body>
+</html>
